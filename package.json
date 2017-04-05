@@ -1,0 +1,26 @@
+{
+  "name": "circularlyfegame",
+  "version": "1.0.0",
+  "description": "A Javascript browser based example of cellular automata, in a a new circular form.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo 'complete'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MisterRee/CircularLyfeGame.git"
+  },
+  "keywords": [
+    "Node",
+    "NPM",
+    "Game",
+    "of",
+    "Life"
+  ],
+  "author": "Danny Lee",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MisterRee/CircularLyfeGame/issues"
+  },
+  "homepage": "https://github.com/MisterRee/CircularLyfeGame#readme"
+}
