@@ -6,8 +6,8 @@ const Render = {
   // p_rd aka: Radius Divisor
   // p_rg aka: Radius Growth
   create( p_rd, p_rg ){
-    if( !canvas ){
-      console.log( 'Canvas does not exist! Existential Crisis!' );
+    if( !_cnv ){
+      console.log( 'Canvas does not exist! Activate the Existential Crisis!' );
       return;
     }
 
@@ -18,14 +18,14 @@ const Render = {
       crd: p_rd,
       crg: p_rg,
       cir: 0, // calculated initial radius
-      cgr: 0, // calculated growth  radius
+      cgr: 0, // calculated growth radius
         c: {} // reference to center point of canvas
     });
 
     return render;
   },
 
-  resize(){
+  refit(){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;
 
@@ -51,12 +51,16 @@ const Render = {
     };
   },
 
-  drawStraightBridge( p_cs, p_l1, p_l2 ){
+  drawStraightBridge( p_cs, p_cr1, p_cr2, p_ac1, p_ac2 ){
     this.ctx.lineWeight = 1;
     this.ctx.strokeStyle = p_cs;
     this.ctx.beginPath();
-    this.ctx.moveTo( p_l1.x, p_l1.y );
-    this.ctx.lineTo( p_l2.x, p_l2.y );
+    this.ctx.moveTo(
+      this.c.x + p_cr1 * Math.cos( p_ac1 ),
+      this.c.y + p_cr1 * Math.sin( p_ac1 ) );
+    this.ctx.lineTo(
+      this.c.x + p_cr2 * Math.cos( p_ac2 ),
+      this.c.y + p_cr2 * Math.sin( p_ac2 ) );
     this.ctx.stroke();
   },
 
@@ -91,25 +95,25 @@ const Render = {
       p_er,
       p_ea,
       p_sa,
-      false
+      true
     );
 
-    ctx.lineTo(
+    this.ctx.lineTo(
       this.c.x + p_sr * Math.cos( p_sa ),
       this.c.y + p_sr * Math.sin( p_sa ),
       this.c.x + p_er * Math.cos( p_sa ),
       this.c.y + p_er * Math.sin( p_sa )
     );
-    ctx.closePath();
+    this.ctx.closePath();
 
     if( p_ls ){
-      ctx.strokeStyle = 'black';
-      ctx.fillStyle = 'white';
-      ctx.fill();
-      ctx.stroke();
+      this.ctx.strokeStyle = 'black';
+      this.ctx.fillStyle = 'white';
+      this.ctx.fill();
+      this.ctx.stroke();
     } else {
-      ctx.fillStyle = 'black';
-      ctx.fill();
+      this.ctx.fillStyle = 'black';
+      this.ctx.fill();
     }
   },
 
@@ -118,3 +122,5 @@ const Render = {
     this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height );
   }
 };
+
+module.exports = Render;

@@ -349,3 +349,20 @@ const tick = function(){
 };
 
 init();
+
+/*
+render(){
+  for( let l = 0; l < this.nl; l++ ){
+    const t_ga = 1 / this.fa[ l + 2 ];
+    const t_sr = this.rm.cir + l * this.rm.crg * 2;
+    const t_er = t_sr + this.rm.crg;
+
+    for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
+      const t_sa = this.rd[ l ].cna[ r ].sa * Math.PI;
+      const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
+
+      this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+    }
+  }
+},
+*/
