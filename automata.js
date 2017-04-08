@@ -95,14 +95,12 @@ let Automata = {
   // p_rs aka: Rotation Scale
   // p_rd aka: Radius Divisor
   // p_rg aka: Radius Growth
-  // p_fr aka: Frame Rate
-  create( p_nl, p_fa, p_rs, p_fr, p_rd, p_rg ){
+  create( p_nl, p_fa, p_rs, p_rd, p_rg ){
     const automata = Object.create( this );
     Object.assign( automata, {
       nl: p_nl,
       fa: p_fa,
       rs: p_rs,
-      fr: p_fr,
       rm: Render.create( p_rd, p_rg ),
       rd: [], // rendering data
       nd: [] // next iteration Data
@@ -112,7 +110,37 @@ let Automata = {
   },
 
   initialize(){
-    this.rm.refit();
+    this.rm.refit( this.nl );
+
+    let rmref = this.rm;
+    let amref = this;
+
+    rmref.cnv.onmousedown = function( event ){
+      rmref.mc =
+        { x: event.x,
+          y: event.y };
+      rmref.md = true;
+      console.log( rmref.md );
+    };
+
+    rmref.cnv.onmousemove = function( event ){
+      if( rmref.md ){
+        rmref.mc =
+          { x: event.x,
+            y: event.y };
+        rmref.mdr = Math.dist( rmref.mc, rmref.c );
+        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height );
+        rmref.cgr = ( t_d / 2 - rmref.cir / 2 - rmref.mdr ) / ( amref.nl * 2 + 1 );
+        rmref.refit( amref.nl );
+        console.log( rmref.cgr );
+      }
+    };
+
+    rmref.cnv.onmouseup = function( event ){
+      rmref.mc = {};
+      rmref.md = false;
+      console.log( rmref.md );
+    };
 
     for( let l = 0; l< this.nl; l++ ){
       let trs = 0;
@@ -154,7 +182,7 @@ let Automata = {
         };
       }
 
-      const t_time = 2 / this.fa[ l + 2 ] / ( this.rs / this.fr );
+      const t_time = 2 / this.fa[ l + 2 ] / this.rs;
       let obj = this;
       window.setInterval( function(){
         calculate( obj, l );
@@ -162,14 +190,44 @@ let Automata = {
     }
   },
 
+  update(){
+
+  },
+
+  cycle( p_fr ){
+    for( let l = 0; l < this.nl; l++ ){
+      for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
+        let scaledRS = this.rs / p_fr;
+
+        if( l % 2 === 0 ){
+          this.rd[ l ].cna[ r ].sa += scaledRS;
+          this.rd[ l ].cna[ r ].ea += scaledRS;
+
+          this.rd[ l ].cna[ r ].sa = this.rd[ l ].cna[ r ].sa % 2;
+          this.rd[ l ].cna[ r ].ea = this.rd[ l ].cna[ r ].ea % 2;
+        } else {
+          this.rd[ l ].cna[ r ].sa -= scaledRS;
+          this.rd[ l ].cna[ r ].ea -= scaledRS;
+
+          if( this.rd[ l ].cna[ r ].sa < 0 ){
+              this.rd[ l ].cna[ r ].sa += 2;
+          }
+          if( this.rd[ l ].cna[ r ].ea < 0 ){
+              this.rd[ l ].cna[ r ].ea += 2;
+          }
+        }
+      }
+    }
+  },
+
   render(){
     for( let l = 0; l < this.nl; l++ ){
       const t_ga = 1 / this.fa[ l + 2 ];
-      const t_sr = this.rm.cir + l * this.rm.crg * 2;
-      const t_er = t_sr + this.rm.crg;
+      const t_sr = this.rm.cir + l * this.rm.cgr * 2;
+      const t_er = t_sr + this.rm.cgr;
 
-      const t_cr1 = this.rm.cir + l * this.rm.crg * 2 + this.rm.crg * 0.5;
-      const t_cr2 = t_cr1 + this.rm.crg * 2;
+      const t_cr1 = this.rm.cir + l * this.rm.cgr * 2 + this.rm.cgr * 0.5;
+      const t_cr2 = t_cr1 + this.rm.cgr * 2;
 
       for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
         const t_sa = this.rd[ l ].cna[ r ].sa * Math.PI;
@@ -219,9 +277,9 @@ let Automata = {
               const t_ac2 = ( t_sa2 + t_ea2 ) / 2 * Math.PI;
 
               if( this.rd[ l ].cna[ r ].ls || this.rd[ l + 1 ].cna[ o ].ls ){
-                color = 'yellow';
-              } else {
                 color = 'red';
+              } else {
+                color = 'yellow';
               }
 
               this.rm.drawStraightBridge( color, t_cr1, t_cr2, t_ac1, t_ac2 );
@@ -230,32 +288,6 @@ let Automata = {
         }
 
         this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
-      }
-    }
-  },
-
-  cycle( p_fr ){
-    for( let l = 0; l < this.nl; l++ ){
-      for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
-        let scaledRS = this.rs / p_fr;
-
-        if( l % 2 === 0 ){
-          this.rd[ l ].cna[ r ].sa += scaledRS;
-          this.rd[ l ].cna[ r ].ea += scaledRS;
-
-          this.rd[ l ].cna[ r ].sa = this.rd[ l ].cna[ r ].sa % 2;
-          this.rd[ l ].cna[ r ].ea = this.rd[ l ].cna[ r ].ea % 2;
-        } else {
-          this.rd[ l ].cna[ r ].sa -= scaledRS;
-          this.rd[ l ].cna[ r ].ea -= scaledRS;
-
-          if( this.rd[ l ].cna[ r ].sa < 0 ){
-              this.rd[ l ].cna[ r ].sa += 2;
-          }
-          if( this.rd[ l ].cna[ r ].ea < 0 ){
-              this.rd[ l ].cna[ r ].ea += 2;
-          }
-        }
       }
     }
   },

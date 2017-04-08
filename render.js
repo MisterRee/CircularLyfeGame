@@ -1,6 +1,18 @@
 const _cnv = document.querySelector( 'canvas' );
 const _ctx = _cnv.getContext( '2d' );
 
+Math.dist = function( a, b ){
+  return Math.sqrt( Math.pow( a.x - b.x, 2 ) + Math.pow( a.y - b.y, 2 ) );
+};
+
+Math.calculateLesserDimension = function( x, y ){
+  if( x > y ){
+    return y;
+  } else {
+    return x;
+  }
+};
+
 const Render = {
   // Requires parameters of:
   // p_rd aka: Radius Divisor
@@ -17,33 +29,27 @@ const Render = {
       ctx: _ctx,
       crd: p_rd,
       crg: p_rg,
-      cir: 0, // calculated initial radius
-      cgr: 0, // calculated growth radius
-        c: {} // reference to center point of canvas
+      cir: 0,  // calculated initial radius, mostly used in other classes
+      cgr: 0,
+      mdr: 0,
+        c: { x: 0,
+             y: 0 }, // reference to center point of canvas
+       mc: { x: 0,
+             y: 0 }, // Mouse Coordinates
+       md: false // Mouse Down check
     });
 
     return render;
   },
 
-  refit(){
+  refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;
 
-    this.cir =
-      Math.round(
-        Math.sqrt(
-          Math.pow( this.cnv.width  / this.crd, 2 ) +
-          Math.pow( this.cnv.height / this.crd, 2 )
-        )
-      );
+    const t_d = Math.calculateLesserDimension( this.cnv.width , this.cnv.height );
 
-    this.cgr =
-      Math.round(
-        Math.sqrt(
-          Math.pow( this.cnv.width  / this.crg, 2 ) +
-          Math.pow( this.cnv.height / this.crg, 2 )
-        )
-      );
+    this.cir = t_d / this.crd;
+    this.cgr = ( t_d / 2 - this.cir / 2 - this.mdr ) / ( p_nl * 2 + 1 );
 
     this.c = {
       x: this.cnv.width  / 2,
@@ -120,7 +126,9 @@ const Render = {
   clear(){
     this.ctx.fillStyle = 'white';
     this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height );
+  },
 
+  referenceLine(){
     this.ctx.lineWeight = 1;
     this.ctx.strokeStyle = 'green';
     this.ctx.beginPath()
@@ -132,7 +140,6 @@ const Render = {
   output( p_fr ){
     this.ctx.fillStyle = "Black";
     this.ctx.font      = "normal 16pt Arial";
-
     this.ctx.fillText( p_fr + " fps", 10, 26 );
   }
 }
