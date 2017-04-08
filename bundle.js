@@ -12,6 +12,83 @@ const applyRules = function( obj, p_cnc, p_l, p_r ){
   }
 };
 
+const calculate = function( obj, p_l ){
+  for( let r = 0; r < obj.fa[ p_l + 2 ]; r++ ){
+    const t_sa2 = obj.rd[ p_l ].cna[ r ].sa;
+      let t_ea2 = obj.rd[ p_l ].cna[ r ].ea;
+
+    if( t_sa2 > t_ea2 ){
+      t_ea2 += 2;
+    }
+
+    let t_cnc = 0;
+
+    if( r + 1 !== obj.fa[ p_l + 2 ] ){
+      if( obj.rd[ p_l ].cna[ r + 1 ].ls ){
+        t_cnc++;
+      } else {
+        if( obj.rd[ p_l ].cna[ 0 ].ls ){
+          t_cnc++;
+        }
+      }
+    }
+
+    if( r !== 0 ){
+      if( obj.rd[ p_l ].cna[ r - 1 ].ls ){
+        t_cnc++;
+      }
+    } else {
+      if( obj.rd[ p_l ].cna[ obj.fa[ p_l + 2 ] - 1 ].ls ){
+        t_cnc++;
+      }
+    }
+
+    if( p_l !== 0 ){
+      for( let i = 0; i < obj.fa[ p_l + 1 ]; i++ ){
+        if( !obj.rd[ p_l - 1 ].cna[ i ].ls ){
+          continue;
+        }
+
+        const t_sa1 = obj.rd[ p_l - 1 ].cna[ i ].sa;
+          let t_ea1 = obj.rd[ p_l - 1 ].cna[ i ].ea;
+
+        if( t_sa1 > t_ea1 ){
+          t_ea1 += 2;
+        }
+
+        if( ( t_sa1 < t_ea2 && t_sa2 < t_ea1 ) || ( t_ea1 > 2 && t_sa2 < t_ea1 ) ){
+          t_cnc++;
+        }
+      }
+    }
+
+    if( p_l + 1 !== obj.nl ){
+      for( let o = 0; o < obj.fa[ p_l + 3 ]; o++ ){
+        if( !obj.rd[ p_l + 1 ].cna[ o ].ls ){
+          continue;
+        }
+
+        const t_sa3 = obj.rd[ p_l + 1 ].cna[ o ].sa;
+          let t_ea3 = obj.rd[ p_l + 1 ].cna[ o ].ea;
+
+        if( t_sa3 > t_ea3 ){
+          t_ea3 += 2;
+        }
+
+        if( ( t_sa2 < t_ea3 && t_sa3 < t_ea2 ) || ( t_sa2 > 2  && t_sa3 < t_ea2 ) ){
+          t_cnc++;
+        }
+      }
+    }
+
+    applyRules( obj, t_cnc, p_l, r );
+  }
+
+  for( let c = 0; c < obj.fa[ p_l + 2 ]; c++ ){
+    obj.rd[ p_l ].cna[ c ].ls = obj.nd[ p_l ][ c ].ls;
+  }
+};
+
 let Automata = {
   // Requires parameters of:
   // p_nl aka: Number of Layers
@@ -79,8 +156,9 @@ let Automata = {
       }
 
       const t_time = 2 / this.fa[ l + 2 ] / ( this.rs / this.fr );
-      setInterval( function(){
-        calculate( l );
+      let obj = this;
+      window.setInterval( function(){
+        calculate( obj, l );
       }, t_time );
     }
   },
@@ -112,17 +190,17 @@ let Automata = {
 
         if( r + 1 !== this.fa[ l + 2 ] ){
           if( this.rd[ l ].cna[ r ].ls || this.rd[ l ].cna[ r + 1 ].ls ){
-            color = 'yellow';
-          } else {
             color = 'red';
+          } else {
+            color = 'yellow';
           }
 
           this.rm.drawArcBridge( color, t_cr1, t_ea1 * Math.PI, this.rd[ l ].cna[ r + 1 ].sa * Math.PI );
         } else {
-          if( this.rd[ l ].cna[ r ].ls || this.rd[ l ].cna[ 0 ].ls ){
-            color = 'yellow';
-          } else {
+          if( this.rd[ l ].cna[ r ].ls ||  this.rd[ l ].cna[ 0 ].ls ){
             color = 'red';
+          } else {
+            color = 'yellow';
           }
 
           this.rm.drawArcBridge( color, t_cr1, t_ea1 * Math.PI, this.rd[ l ].cna[ 0 ].sa * Math.PI );
@@ -157,18 +235,20 @@ let Automata = {
     }
   },
 
-  cycle(){
+  cycle( p_fr ){
     for( let l = 0; l < this.nl; l++ ){
       for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
+        let scaledRS = this.rs / p_fr;
+
         if( l % 2 === 0 ){
-          this.rd[ l ].cna[ r ].sa += this.rs;
-          this.rd[ l ].cna[ r ].ea += this.rs;
+          this.rd[ l ].cna[ r ].sa += scaledRS;
+          this.rd[ l ].cna[ r ].ea += scaledRS;
 
           this.rd[ l ].cna[ r ].sa = this.rd[ l ].cna[ r ].sa % 2;
           this.rd[ l ].cna[ r ].ea = this.rd[ l ].cna[ r ].ea % 2;
         } else {
-          this.rd[ l ].cna[ r ].sa -= this.rs;
-          this.rd[ l ].cna[ r ].ea -= this.rs;
+          this.rd[ l ].cna[ r ].sa -= scaledRS;
+          this.rd[ l ].cna[ r ].ea -= scaledRS;
 
           if( this.rd[ l ].cna[ r ].sa < 0 ){
               this.rd[ l ].cna[ r ].sa += 2;
@@ -181,79 +261,10 @@ let Automata = {
     }
   },
 
-  calculate( p_l ){
-    for( let r = 0; r < this.fa[ p_l + 2 ]; r++ ){
-      const t_sa2 = this.rd[ p_l ].cna[ r ].sa;
-        let t_ea2 = this.rd[ p_l ].cna[ r ].ea;
-
-      if( t_sa2 > t_ea2 ){
-        t_ea2 += 2;
-      }
-
-      let t_cnc = 0;
-
-      if( r + 1 !== this.fa[ p_l + 2 ] ){
-        if( this.rd[ p_l ].cna[ r + 1 ].ls ){
-          t_cnc++;
-        } else {
-          if( this.rd[ p_l ].cna[ 0 ].ls ){
-            t_cnc++;
-          }
-        }
-      }
-
-      if( r !== 0 ){
-        if( this.rd[ p_l ].cna[ r - 1 ].ls ){
-          t_cnc++;
-        }
-      } else {
-        if( this.rd[ p_l ].cna[ this.fa[ p_l + 2 ] - 1 ].ls ){
-          t_cnc++;
-        }
-      }
-
-      if( p_l !== 0 ){
-        for( let i = 0; i < this.fa[ p_l + 1 ]; i++ ){
-          if( !this.rd[ p_l - 1 ].cna[ p_l ].ls ){
-            continue;
-          }
-
-          const t_sa1 = this.rd[ p_l - 1 ].cna[ i ].sa;
-            let t_ea1 = this.rd[ p_l - 1 ].cna[ i ].ea;
-
-          if( t_ca1 > t_na1 ){
-            t_na1 += 2;
-          }
-
-          if( ( t_sa1 < t_ea2 && t_sa2 < t_ea1 ) || ( t_ea1 > 2 && t_sa2 < t_ea1 ) ){
-            t_cnc++;
-          }
-        }
-      }
-
-      if( p_l + 1 !== this.nl ){
-        for( let o = 0; o < this.fa[ p_l + 3 ]; o++ ){
-          if( !this.rd[ p_l + 1 ].cna[ o ].ls ){
-            continue;
-          }
-
-          const t_sa3 = this.rd[ p_l + 1 ].cna[ o ].sa;
-            let t_ea3 = this.rd[ p_l + 1 ].cna[ o ].ea;
-
-          if( t_sa3 > t_ea3 ){
-            t_ea3 += 2;
-          }
-
-          if( ( t_sa2 < t_ea3 && t_sa3 < t_ea2 ) || ( t_sa2 > 2  && t_sa3 < t_ea2 ) ){
-            t_cnc++;
-          }
-        }
-      }
-
-      applyRules( this, t_cnc, p_l, r );
-    }
+  displayFrameRate( p_fr ){
+    this.rm.output( p_fr );
   }
-};
+}
 
 module.exports = Automata;
 
@@ -265,9 +276,9 @@ const c_fr = 25; // frame rate, in ms
 
 const c_nnl = 4; // Number of node layers
 const c_ifa = [ 2, 3 ]; // Initial Fibbonachi Array
-const c_lrs = 0.0015; // Layer Rotation Scale
-const c_crd = 8;  // Canvas-sacled Radius Divisor
-const c_crg = 40; // Canvas-scaled Radius Growth
+const c_lrs = 2 / 10000; // Layer Rotation Scale
+const c_crd = 20;  // Canvas-sacled Radius Divisor
+const c_crg = 20; // Canvas-scaled Radius Growth
 
 const Automata = require( './automata.js' );
 const automata = Automata.create( c_nnl, c_ifa, c_lrs, c_fr, c_crd, c_crg );
@@ -305,9 +316,11 @@ const gameLoop = function(){
   lrc = new Date().getTime();
   tbr = 1 / delta;
 
+  automata.cycle( tbr );
   automata.rm.clear();
   automata.render();
-  automata.cycle();
+  automata.displayFrameRate( delta );
+
   requestFrameRate( gameLoop );
 };
 
@@ -422,7 +435,7 @@ const Render = {
     );
     this.ctx.closePath();
 
-    if( p_ls ){
+    if( !p_ls ){
       this.ctx.strokeStyle = 'black';
       this.ctx.fillStyle = 'white';
       this.ctx.fill();
@@ -436,8 +449,22 @@ const Render = {
   clear(){
     this.ctx.fillStyle = 'white';
     this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height );
+
+    this.ctx.lineWeight = 1;
+    this.ctx.strokeStyle = 'green';
+    this.ctx.beginPath()
+    this.ctx.moveTo( this.c.x, this.c.y );
+    this.ctx.lineTo( this.cnv.width, this.c.y );
+    this.ctx.stroke();
+  },
+
+  output( p_fr ){
+    this.ctx.fillStyle = "Black";
+    this.ctx.font      = "normal 16pt Arial";
+
+    this.ctx.fillText( p_fr + " fps", 10, 26 );
   }
-};
+}
 
 module.exports = Render;
 

@@ -78,6 +78,9 @@ const init = function(){
     }
 
     const t = 2 / fibb[ l + 2 ] / ( _lrs / _fr );
+    console.log( _lrs );
+    console.log( _fr );
+    console.log( t );
     setInterval( function(){
       calculateLayer( l );
     }, t );

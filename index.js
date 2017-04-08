@@ -5,9 +5,9 @@ const c_fr = 25; // frame rate, in ms
 
 const c_nnl = 4; // Number of node layers
 const c_ifa = [ 2, 3 ]; // Initial Fibbonachi Array
-const c_lrs = 0.0015; // Layer Rotation Scale
-const c_crd = 8;  // Canvas-sacled Radius Divisor
-const c_crg = 40; // Canvas-scaled Radius Growth
+const c_lrs = 2 / 10000; // Layer Rotation Scale, divsor is time required for one full rotation
+const c_crd = 20;  // Canvas-sacled Radius Divisor
+const c_crg = 20; // Canvas-scaled Radius Growth
 
 const Automata = require( './automata.js' );
 const automata = Automata.create( c_nnl, c_ifa, c_lrs, c_fr, c_crd, c_crg );
@@ -45,9 +45,11 @@ const gameLoop = function(){
   lrc = new Date().getTime();
   tbr = 1 / delta;
 
+  automata.cycle( tbr );
   automata.rm.clear();
   automata.render();
-  automata.cycle();
+  automata.displayFrameRate( delta );
+
   requestFrameRate( gameLoop );
 };
 

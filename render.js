@@ -106,7 +106,7 @@ const Render = {
     );
     this.ctx.closePath();
 
-    if( p_ls ){
+    if( !p_ls ){
       this.ctx.strokeStyle = 'black';
       this.ctx.fillStyle = 'white';
       this.ctx.fill();
@@ -120,7 +120,21 @@ const Render = {
   clear(){
     this.ctx.fillStyle = 'white';
     this.ctx.fillRect(0, 0, this.cnv.width, this.cnv.height );
+
+    this.ctx.lineWeight = 1;
+    this.ctx.strokeStyle = 'green';
+    this.ctx.beginPath()
+    this.ctx.moveTo( this.c.x, this.c.y );
+    this.ctx.lineTo( this.cnv.width, this.c.y );
+    this.ctx.stroke();
+  },
+
+  output( p_fr ){
+    this.ctx.fillStyle = "Black";
+    this.ctx.font      = "normal 16pt Arial";
+
+    this.ctx.fillText( p_fr + " fps", 10, 26 );
   }
-};
+}
 
 module.exports = Render;
