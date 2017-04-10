@@ -1,8 +1,6 @@
 const _cnv = document.querySelector( 'canvas' );
 const _ctx = _cnv.getContext( '2d' );
-
 const _ms = document.querySelector( 'section' );
-console.log( _ms );
 
 Math.dist = function( a, b ){
   return Math.sqrt( Math.pow( a.x - b.x, 2 ) + Math.pow( a.y - b.y, 2 ) );

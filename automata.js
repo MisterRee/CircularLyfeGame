@@ -1,4 +1,5 @@
 const Render = require( './render.js' );
+const Audio = require( './audio.js' );
 
 // Closure 'private' function
 const applyRules = function( obj, p_cnc, p_l, p_r ){
@@ -12,6 +13,8 @@ const applyRules = function( obj, p_cnc, p_l, p_r ){
 };
 
 const calculate = function( obj, p_l ){
+  let t_na = 0;
+
   for( let r = 0; r < obj.fa[ p_l + 2 ]; r++ ){
     const t_sa2 = obj.rd[ p_l ].cna[ r ].sa;
       let t_ea2 = obj.rd[ p_l ].cna[ r ].ea;
@@ -79,13 +82,22 @@ const calculate = function( obj, p_l ){
         }
       }
     }
-
     applyRules( obj, t_cnc, p_l, r );
   }
 
   for( let c = 0; c < obj.fa[ p_l + 2 ]; c++ ){
     obj.rd[ p_l ].cna[ c ].ls = obj.nd[ p_l ][ c ].ls;
+
+    if( obj.rd[ p_l ].cna[ c ].ls ){
+      t_na++;
+    }
   }
+
+  if( t_na > 8 ){
+    t_na = 7;
+  }
+
+  obj.aa[ p_l ].play( t_na );
 };
 
 const Automata = {
@@ -103,7 +115,8 @@ const Automata = {
       rs: p_rs,
       rm: Render.create( p_rd, p_rg ),
       rd: [], // rendering data
-      nd: [] // next iteration Data
+      nd: [], // next iteration Data
+      aa: []  // Audio Array
     });
 
     return automata;
@@ -190,15 +203,18 @@ const Automata = {
       }
 
       const t_time = 2 / this.fa[ l + 2 ] / this.rs;
+
+      this.aa[ l ] = Audio.create( l ,t_time );
+      this.aa[ l ].setup( 0.1, 0.2, 0.5, 0.2, 0.65 );
+
       let obj = this;
+
       window.setInterval( function(){
         calculate( obj, l );
       }, t_time );
     }
-  },
 
-  update(){
-
+    console.log( this.aa );
   },
 
   cycle( p_fr ){
