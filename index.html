@@ -8,13 +8,36 @@
 
   canvas{
     position: absolute;
+    z-index: 5;
     width: 100%;
     height: 100%;
   }
+
+  section{
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background-color: #000;
+    cursor: pointer;
+    color: #FFF;
+    font-size: 2em;
+
+    -webkit-animation:spin 10s linear infinite;
+    -moz-animation:spin 10s linear infinite;
+    animation:spin 10s linear infinite;
+  }
+
+  @-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+  @-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+  @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+
 </style>
 </head>
 <body>
   <canvas></canvas>
+  <section>?</section>
 </body>
 <script src="./bundle.js"></script>
 </html>

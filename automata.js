@@ -88,7 +88,7 @@ const calculate = function( obj, p_l ){
   }
 };
 
-let Automata = {
+const Automata = {
   // Requires parameters of:
   // p_nl aka: Number of Layers
   // p_fa aka: Fibbonachi Array
@@ -120,7 +120,6 @@ let Automata = {
         { x: event.x,
           y: event.y };
       rmref.md = true;
-      console.log( rmref.md );
     };
 
     rmref.cnv.onmousemove = function( event ){
@@ -128,18 +127,26 @@ let Automata = {
         rmref.mc =
           { x: event.x,
             y: event.y };
+
+        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2;
+        const max = t_d - rmref.cir / 2;
+        const min = rmref.cir;
+
         rmref.mdr = Math.dist( rmref.mc, rmref.c );
-        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height );
-        rmref.cgr = ( t_d / 2 - rmref.cir / 2 - rmref.mdr ) / ( amref.nl * 2 + 1 );
-        rmref.refit( amref.nl );
-        console.log( rmref.cgr );
+
+        if( rmref.mdr < rmref.cir ){
+          rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 ) ;
+        } else if( rmref.mdr > max + rmref.cir / 4 ){
+          rmref.cgr = ( max - rmref.cir / 2 ) / ( amref.nl * 2 );
+        } else {
+          rmref.cgr = Math.abs( rmref.mdr * ( ( rmref.cir - t_d ) / t_d ) / ( amref.nl * 2 ) );
+        }
       }
     };
 
     rmref.cnv.onmouseup = function( event ){
       rmref.mc = {};
       rmref.md = false;
-      console.log( rmref.md );
     };
 
     for( let l = 0; l< this.nl; l++ ){

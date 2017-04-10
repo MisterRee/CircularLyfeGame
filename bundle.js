@@ -89,7 +89,7 @@ const calculate = function( obj, p_l ){
   }
 };
 
-let Automata = {
+const Automata = {
   // Requires parameters of:
   // p_nl aka: Number of Layers
   // p_fa aka: Fibbonachi Array
@@ -121,7 +121,6 @@ let Automata = {
         { x: event.x,
           y: event.y };
       rmref.md = true;
-      console.log( rmref.md );
     };
 
     rmref.cnv.onmousemove = function( event ){
@@ -129,18 +128,26 @@ let Automata = {
         rmref.mc =
           { x: event.x,
             y: event.y };
+
+        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2;
+        const max = t_d - rmref.cir / 2;
+        const min = rmref.cir;
+
         rmref.mdr = Math.dist( rmref.mc, rmref.c );
-        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height );
-        rmref.cgr = ( t_d / 2 - rmref.cir / 2 - rmref.mdr ) / ( amref.nl * 2 + 1 );
-        rmref.refit( amref.nl );
-        console.log( rmref.cgr );
+
+        if( rmref.mdr < rmref.cir ){
+          rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 ) ;
+        } else if( rmref.mdr > max + rmref.cir / 4 ){
+          rmref.cgr = ( max - rmref.cir / 2 ) / ( amref.nl * 2 );
+        } else {
+          rmref.cgr = Math.abs( rmref.mdr * ( ( rmref.cir - t_d ) / t_d ) / ( amref.nl * 2 ) );
+        }
       }
     };
 
     rmref.cnv.onmouseup = function( event ){
       rmref.mc = {};
       rmref.md = false;
-      console.log( rmref.md );
     };
 
     for( let l = 0; l< this.nl; l++ ){
@@ -304,7 +311,7 @@ module.exports = Automata;
 'use strict';
 
 // Configure variables
-const c_nnl = 6; // Number of node layers
+const c_nnl = 5; // Number of node layers
 const c_ifa = [ 2, 3 ]; // Initial Fibbonachi Array
 const c_lrs = 2 / 20000; // Layer Rotation Scale, divsor is time required for one full rotation
 
@@ -361,6 +368,9 @@ init();
 const _cnv = document.querySelector( 'canvas' );
 const _ctx = _cnv.getContext( '2d' );
 
+const _ms = document.querySelector( 'section' );
+console.log( _ms );
+
 Math.dist = function( a, b ){
   return Math.sqrt( Math.pow( a.x - b.x, 2 ) + Math.pow( a.y - b.y, 2 ) );
 };
@@ -409,12 +419,18 @@ const Render = {
     const t_d = Math.calculateLesserDimension( this.cnv.width , this.cnv.height );
 
     this.cir = t_d / this.crd;
-    this.cgr = ( t_d / 2 - this.cir / 2 - this.mdr ) / ( p_nl * 2 + 1 );
+    this.cgr = ( t_d / 2 - this.cir / 2 ) / ( p_nl * 2 );
 
     this.c = {
       x: this.cnv.width  / 2,
       y: this.cnv.height / 2
     };
+
+    _ms.style.width  = this.cir * 2 + 'px';
+    _ms.style.height = this.cir * 2 + 'px';
+    _ms.style.top  = ( this.cnv.height / 2 - this.cir ) + 'px';
+    _ms.style.left = ( this.cnv.width  / 2 - this.cir ) + 'px';
+    _ms.style.borderRadius = this.cir + 'px';
   },
 
   drawStraightBridge( p_cs, p_cr1, p_cr2, p_ac1, p_ac2 ){

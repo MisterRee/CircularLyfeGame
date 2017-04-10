@@ -1,7 +1,7 @@
 'use strict';
 
 // Configure variables
-const c_nnl = 6; // Number of node layers
+const c_nnl = 5; // Number of node layers
 const c_ifa = [ 2, 3 ]; // Initial Fibbonachi Array
 const c_lrs = 2 / 20000; // Layer Rotation Scale, divsor is time required for one full rotation
 

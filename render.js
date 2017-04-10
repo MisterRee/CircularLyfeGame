@@ -1,6 +1,9 @@
 const _cnv = document.querySelector( 'canvas' );
 const _ctx = _cnv.getContext( '2d' );
 
+const _ms = document.querySelector( 'section' );
+console.log( _ms );
+
 Math.dist = function( a, b ){
   return Math.sqrt( Math.pow( a.x - b.x, 2 ) + Math.pow( a.y - b.y, 2 ) );
 };
@@ -49,12 +52,18 @@ const Render = {
     const t_d = Math.calculateLesserDimension( this.cnv.width , this.cnv.height );
 
     this.cir = t_d / this.crd;
-    this.cgr = ( t_d / 2 - this.cir / 2 - this.mdr ) / ( p_nl * 2 + 1 );
+    this.cgr = ( t_d / 2 - this.cir / 2 ) / ( p_nl * 2 );
 
     this.c = {
       x: this.cnv.width  / 2,
       y: this.cnv.height / 2
     };
+
+    _ms.style.width  = this.cir * 2 + 'px';
+    _ms.style.height = this.cir * 2 + 'px';
+    _ms.style.top  = ( this.cnv.height / 2 - this.cir ) + 'px';
+    _ms.style.left = ( this.cnv.width  / 2 - this.cir ) + 'px';
+    _ms.style.borderRadius = this.cir + 'px';
   },
 
   drawStraightBridge( p_cs, p_cr1, p_cr2, p_ac1, p_ac2 ){
