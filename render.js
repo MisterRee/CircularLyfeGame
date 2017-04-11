@@ -30,6 +30,7 @@ const Render = {
       ctx: _ctx,
       crd: p_rd,
       crg: p_rg,
+      ldr: 0,
       cir: 0,  // calculated initial radius, mostly used in other classes
       cgr: 0,
       mdr: 0,
@@ -42,7 +43,7 @@ const Render = {
 
     return render;
   },
-
+  
   refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;

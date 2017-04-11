@@ -10,56 +10,82 @@ const repipe = function( obj ){
 }
 
 const Audio = {
-  create( p_base, p_time ){
+  create( p_base ){
     let audio = Object.create( this );
-    let t_a = new AudioContext();
 
     Object.assign( audio, {
-      base: 55 * Math.pow( 2 , p_base ),  // hertz starting at 55 hertz
+      base: p_base,  // int in hertz
       step: Math.pow( 2, ( 1 / 12 ) ), // To depict the twelve steps of pitch between each octave
-      note: p_time, // Time in milliseconds
-      atx: t_a,
-      carrier: t_a.createOscillator(),
-      envelope: t_a.createGain(),
-      filter: t_a.createBiquadFilter()
+      data: []
     });
-
-    audio.filter.type = "lowpass";
 
     return audio;
   },
 
-  // Envelope Setup
+  // p_time: duration of note
   // p_ea: Attack duration, fraction of 1
   // p_ed: Deacy duration, fraction of 1
   // p_es: Sustain duration, fraction of 1
   // p_er: Release duration, fraction of 1
   // p_ev: Sustain volume level
-  setup( p_ea, p_ed, p_es, p_er, p_ev ){
-    const attack  = this.note * p_ea;
-    const decay   = this.note * p_ed;
-    const sustain = this.note * p_es;
-    const release = this.note * p_er;
+  setup( p_nl, p_time, p_ea, p_ed, p_es, p_er, p_ev ){
+    const attack  = p_time * p_ea;
+    const decay   = p_time * p_ed;
+    const sustain = p_time * p_es;
+    const release = p_time * p_er;
 
-    this.envelope.gain.linearRampToValueAtTime( 1,     this.atx.currentTime + attack );
-    this.envelope.gain.linearRampToValueAtTime( p_ev, this.atx.currentTime + attack + decay );
-    this.envelope.gain.linearRampToValueAtTime( 0,     this.atx.currentTime + attack + decay + sustain + release );
-  },
-
-  play( p_ns ){
-    // http://www.phy.mtu.edu/~suits/NoteFreqCalcs.html
-    this.carrier.frequency.value = this.base * Math.pow( this.step, p_ns );
-    this.filter.frequency.value = this.carrier.frequency.value * 2; // To this value's next octave
-
-    repipe( this );
     const ctx = this;
 
-    window.setTimeout( function(){
-      ctx.carrier.stop();
-      ctx.carrier.disconnect( ctx.filter );
-      ctx.filter.disconnect( ctx.envelope );
-      ctx.envelope.disconnect( ctx.atx.destination );
-    }, ctx.note );
+    const node = {
+      base: ctx.base * Math.pow( 2, p_nl ),
+      note: p_time,
+      atk: attack,
+      dcy: decay,
+      stn: sustain,
+      rls: release,
+      sdr: p_ev,
+      atx: new AudioContext()
+    };
+
+    return node;
+  },
+
+  // p_nl: index of node layer
+  // p_fl: fibb array length
+  // p_ns: pitch steps from base pitch
+  play( p_nl, p_fl, p_ns, p_v ){
+    const node = this.data[ p_nl ];
+    const osc = node.atx.createOscillator();
+    const ftr = node.atx.createBiquadFilter();
+    const env = node.atx.createGain();
+
+    osc.connect( ftr );
+    ftr.connect( env );
+    env.connect( node.atx.destination );
+
+    // Formula from http://www.phy.mtu.edu/~suits/NoteFreqCalcs.html
+    osc.frequency.value = node.base * Math.pow( this.step, p_ns );
+
+    //osc.frequency.value = node.base;
+    //osc.detune.value = p_ns * 12.5;
+
+    ftr.type = "lowpass";
+    ftr.frequency.value = node.base; // To this value's next octave
+
+    if( p_v < 0 ){
+      p_v = 1;
+    }
+
+    console.log( p_v  * 5 );
+    let maxGain = p_v * 5 * ( 1 / ( p_fl ) );
+
+    env.gain.value = 0;
+    env.gain.linearRampToValueAtTime( maxGain,            node.atx.currentTime + node.atk );
+    env.gain.linearRampToValueAtTime( maxGain * node.sdr, node.atx.currentTime + node.atk + node.dcy );
+    env.gain.linearRampToValueAtTime( 0,                  node.atx.currentTime + node.atk + node.dcy + node.stn + node.rls );
+
+    osc.start();
+    osc.stop( node.atx.currentTime + node.note );
   }
 };
 
@@ -161,11 +187,15 @@ const calculate = function( obj, p_l ){
     }
   }
 
-  if( t_na > 8 ){
-    t_na = 7;
+  if( t_na > 16 ){
+    t_na = Math.round( t_na / 4 );
+  } else if( t_na > 12 ){
+    t_na = Math.round( t_na / 3 );
+  } else if( t_na > 8 ){
+    t_na = Math.floor( t_na / 2 );
   }
 
-  obj.aa[ p_l ].play( t_na );
+  obj.am.play( p_l, obj.fa[ p_l + 2 ], t_na * 2, obj.rm.cgr / ( ( obj.rm.ldr - obj.rm.cir ) / ( obj.nl * 2 ) ) );
 };
 
 const Automata = {
@@ -182,9 +212,10 @@ const Automata = {
       fa: p_fa,
       rs: p_rs,
       rm: Render.create( p_rd, p_rg ),
+      am:  Audio.create( 55 ),
       rd: [], // rendering data
       nd: [], // next iteration Data
-      aa: []  // Audio Array
+
     });
 
     return automata;
@@ -209,18 +240,15 @@ const Automata = {
           { x: event.x,
             y: event.y };
 
-        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2;
-        const max = t_d - rmref.cir / 2;
-        const min = rmref.cir;
-
+        rmref.ldr = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2;
         rmref.mdr = Math.dist( rmref.mc, rmref.c );
 
         if( rmref.mdr < rmref.cir ){
           rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 ) ;
-        } else if( rmref.mdr > max + rmref.cir / 4 ){
-          rmref.cgr = ( max - rmref.cir / 2 ) / ( amref.nl * 2 );
+        } else if( rmref.mdr > rmref.ldr - rmref.cir / 4 ){
+          rmref.cgr = ( rmref.ldr - rmref.cir ) / ( amref.nl * 2 );
         } else {
-          rmref.cgr = Math.abs( rmref.mdr * ( ( rmref.cir - t_d ) / t_d ) / ( amref.nl * 2 ) );
+          rmref.cgr = Math.abs( rmref.mdr * ( ( rmref.cir - rmref.ldr ) / ( rmref.ldr ) ) / ( amref.nl * 2 ) );
         }
       }
     };
@@ -271,18 +299,14 @@ const Automata = {
       }
 
       const t_time = 2 / this.fa[ l + 2 ] / this.rs;
-
-      this.aa[ l ] = Audio.create( l ,t_time );
-      this.aa[ l ].setup( 0.1, 0.2, 0.5, 0.2, 0.65 );
-
+      this.am.data[ l ] = this.am.setup( l ,t_time / 1000, 0.25, 0.25, 0.25, 0.25, 0.5 );
       let obj = this;
 
+      calculate( obj, l );
       window.setInterval( function(){
         calculate( obj, l );
       }, t_time );
     }
-
-    console.log( this.aa );
   },
 
   cycle( p_fr ){
@@ -325,6 +349,22 @@ const Automata = {
         const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
 
         this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+      }
+    }
+  },
+
+  renderBridges(){
+    for( let l = 0; l < this.nl; l++ ){
+      const t_ga = 1 / this.fa[ l + 2 ];
+      const t_sr = this.rm.cir + l * this.rm.cgr * 2;
+      const t_er = t_sr + this.rm.cgr;
+
+      const t_cr1 = this.rm.cir + l * this.rm.cgr * 2 + this.rm.cgr * 0.5;
+      const t_cr2 = t_cr1 + this.rm.cgr * 2;
+
+      for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
+        const t_sa = this.rd[ l ].cna[ r ].sa * Math.PI;
+        const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
 
         const t_sa1 = this.rd[ l ].cna[ r ].sa;
           let t_ea1 = this.rd[ l ].cna[ r ].ea;
@@ -480,6 +520,7 @@ const Render = {
       ctx: _ctx,
       crd: p_rd,
       crg: p_rg,
+      ldr: 0,
       cir: 0,  // calculated initial radius, mostly used in other classes
       cgr: 0,
       mdr: 0,
@@ -492,7 +533,7 @@ const Render = {
 
     return render;
   },
-
+  
   refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;

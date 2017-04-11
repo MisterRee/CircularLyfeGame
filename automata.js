@@ -93,11 +93,15 @@ const calculate = function( obj, p_l ){
     }
   }
 
-  if( t_na > 8 ){
-    t_na = 7;
+  if( t_na > 16 ){
+    t_na = Math.round( t_na / 4 );
+  } else if( t_na > 12 ){
+    t_na = Math.round( t_na / 3 );
+  } else if( t_na > 8 ){
+    t_na = Math.floor( t_na / 2 );
   }
 
-  obj.aa[ p_l ].play( t_na );
+  obj.am.play( p_l, obj.fa[ p_l + 2 ], t_na * 2, obj.rm.cgr / ( ( obj.rm.ldr - obj.rm.cir ) / ( obj.nl * 2 ) ) );
 };
 
 const Automata = {
@@ -114,9 +118,10 @@ const Automata = {
       fa: p_fa,
       rs: p_rs,
       rm: Render.create( p_rd, p_rg ),
+      am:  Audio.create( 55 ),
       rd: [], // rendering data
       nd: [], // next iteration Data
-      aa: []  // Audio Array
+
     });
 
     return automata;
@@ -141,18 +146,15 @@ const Automata = {
           { x: event.x,
             y: event.y };
 
-        const t_d = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2;
-        const max = t_d - rmref.cir / 2;
-        const min = rmref.cir;
-
+        rmref.ldr = Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2;
         rmref.mdr = Math.dist( rmref.mc, rmref.c );
 
         if( rmref.mdr < rmref.cir ){
           rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 ) ;
-        } else if( rmref.mdr > max + rmref.cir / 4 ){
-          rmref.cgr = ( max - rmref.cir / 2 ) / ( amref.nl * 2 );
+        } else if( rmref.mdr > rmref.ldr - rmref.cir / 4 ){
+          rmref.cgr = ( rmref.ldr - rmref.cir ) / ( amref.nl * 2 );
         } else {
-          rmref.cgr = Math.abs( rmref.mdr * ( ( rmref.cir - t_d ) / t_d ) / ( amref.nl * 2 ) );
+          rmref.cgr = Math.abs( rmref.mdr * ( ( rmref.cir - rmref.ldr ) / ( rmref.ldr ) ) / ( amref.nl * 2 ) );
         }
       }
     };
@@ -203,18 +205,14 @@ const Automata = {
       }
 
       const t_time = 2 / this.fa[ l + 2 ] / this.rs;
-
-      this.aa[ l ] = Audio.create( l ,t_time );
-      this.aa[ l ].setup( 0.1, 0.2, 0.5, 0.2, 0.65 );
-
+      this.am.data[ l ] = this.am.setup( l ,t_time / 1000, 0.25, 0.25, 0.25, 0.25, 0.5 );
       let obj = this;
 
+      calculate( obj, l );
       window.setInterval( function(){
         calculate( obj, l );
       }, t_time );
     }
-
-    console.log( this.aa );
   },
 
   cycle( p_fr ){
@@ -257,6 +255,22 @@ const Automata = {
         const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
 
         this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+      }
+    }
+  },
+
+  renderBridges(){
+    for( let l = 0; l < this.nl; l++ ){
+      const t_ga = 1 / this.fa[ l + 2 ];
+      const t_sr = this.rm.cir + l * this.rm.cgr * 2;
+      const t_er = t_sr + this.rm.cgr;
+
+      const t_cr1 = this.rm.cir + l * this.rm.cgr * 2 + this.rm.cgr * 0.5;
+      const t_cr2 = t_cr1 + this.rm.cgr * 2;
+
+      for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
+        const t_sa = this.rd[ l ].cna[ r ].sa * Math.PI;
+        const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
 
         const t_sa1 = this.rd[ l ].cna[ r ].sa;
           let t_ea1 = this.rd[ l ].cna[ r ].ea;
