@@ -102,6 +102,15 @@ const calculate = function( obj, p_l ){
   }
 
   obj.am.play( p_l, obj.fa[ p_l + 2 ], t_na * 2, obj.rm.cgr / ( ( obj.rm.ldr - obj.rm.cir ) / ( obj.nl * 2 ) ) );
+
+  const sa = Math.random() * 2 * Math.PI;
+  const ea = 1 / obj.fa[ p_l + 2 ] * Math.PI;
+  const el = obj.rm.cir * Math.random() / 4;
+  const r = Math.floor( Math.random() * 255 );
+  const g = Math.floor( Math.random() * 255 );
+  const b = Math.floor( Math.random() * 255 );
+
+  obj.rm.addExtra( sa, ea, el, r, g, b );
 };
 
 const Automata = {
@@ -121,7 +130,7 @@ const Automata = {
       am:  Audio.create( 55 ),
       rd: [], // rendering data
       nd: [], // next iteration Data
-
+      dm: "minim" // draw mode
     });
 
     return automata;
@@ -150,7 +159,7 @@ const Automata = {
         rmref.mdr = Math.dist( rmref.mc, rmref.c );
 
         if( rmref.mdr < rmref.cir ){
-          rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 ) ;
+          rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 );
         } else if( rmref.mdr > rmref.ldr - rmref.cir / 4 ){
           rmref.cgr = ( rmref.ldr - rmref.cir ) / ( amref.nl * 2 );
         } else {
@@ -159,10 +168,16 @@ const Automata = {
       }
     };
 
+    rmref.cnv.onmouseleave = function( event ){
+      rmref.md = false;
+    };
+
     rmref.cnv.onmouseup = function( event ){
       rmref.mc = {};
       rmref.md = false;
     };
+
+    rmref.cgr = ( Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2 - rmref.cir ) / ( amref.nl * 2 );
 
     for( let l = 0; l< this.nl; l++ ){
       let trs = 0;
@@ -239,6 +254,15 @@ const Automata = {
         }
       }
     }
+
+    for( let i = this.rm.ea.length - 1; i >= 0; i-- ){
+      this.rm.ea[ i ].ca -= this.rm.ea[ i ].cd / p_fr;
+      this.rm.ea[ i ].sl += ( this.rm.ea[ i ].ae / 5000 / p_fr ) * ( this.rm.cgr / ( ( this.rm.ldr - this.rm.cir ) ) * 10 );
+
+      if( this.rm.ea[ i ].ca < 0 ){
+        this.rm.ea.splice( i, 1 );
+      }
+    }
   },
 
   render(){
@@ -254,7 +278,11 @@ const Automata = {
         const t_sa = this.rd[ l ].cna[ r ].sa * Math.PI;
         const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
 
-        this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        if( this.dm === "minim" ){
+          this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        } else if( this.dm === "allNodes" ){
+          this.rm.drawAllNodes( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        }
       }
     }
   },
@@ -324,7 +352,7 @@ const Automata = {
           }
         }
 
-        this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        this.rm.drawAllNodes( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
       }
     }
   },

@@ -16,6 +16,7 @@ const Audio = {
     Object.assign( audio, {
       base: p_base,  // int in hertz
       step: Math.pow( 2, ( 1 / 12 ) ), // To depict the twelve steps of pitch between each octave
+      mute: true,
       data: []
     });
 
@@ -50,42 +51,51 @@ const Audio = {
     return node;
   },
 
+  switchMute(){
+    if( this.mute ){
+      this.mute = false;
+    } else {
+      this.mute = true;
+    }
+  },
+
   // p_nl: index of node layer
   // p_fl: fibb array length
   // p_ns: pitch steps from base pitch
   play( p_nl, p_fl, p_ns, p_v ){
-    const node = this.data[ p_nl ];
-    const osc = node.atx.createOscillator();
-    const ftr = node.atx.createBiquadFilter();
-    const env = node.atx.createGain();
+    if( !this.mute ){
+      const node = this.data[ p_nl ];
+      const osc = node.atx.createOscillator();
+      const ftr = node.atx.createBiquadFilter();
+      const env = node.atx.createGain();
 
-    osc.connect( ftr );
-    ftr.connect( env );
-    env.connect( node.atx.destination );
+      osc.connect( ftr );
+      ftr.connect( env );
+      env.connect( node.atx.destination );
 
-    // Formula from http://www.phy.mtu.edu/~suits/NoteFreqCalcs.html
-    osc.frequency.value = node.base * Math.pow( this.step, p_ns );
+      // Formula from http://www.phy.mtu.edu/~suits/NoteFreqCalcs.html
+      osc.frequency.value = node.base * Math.pow( this.step, p_ns );
 
-    //osc.frequency.value = node.base;
-    //osc.detune.value = p_ns * 12.5;
+      //osc.frequency.value = node.base;
+      //osc.detune.value = p_ns * 12.5;
 
-    ftr.type = "lowpass";
-    ftr.frequency.value = node.base; // To this value's next octave
+      ftr.type = "lowpass";
+      ftr.frequency.value = node.base; // To this value's next octave
 
-    if( p_v < 0 ){
-      p_v = 1;
+      if( p_v < 0 ){
+        p_v = 1;
+      }
+
+      let maxGain = p_v * 5 * ( 1 / ( p_fl ) );
+
+      env.gain.value = 0;
+      env.gain.linearRampToValueAtTime( maxGain,            node.atx.currentTime + node.atk );
+      env.gain.linearRampToValueAtTime( maxGain * node.sdr, node.atx.currentTime + node.atk + node.dcy );
+      env.gain.linearRampToValueAtTime( 0,                  node.atx.currentTime + node.atk + node.dcy + node.stn + node.rls );
+
+      osc.start();
+      osc.stop( node.atx.currentTime + node.note );
     }
-
-    console.log( p_v  * 5 );
-    let maxGain = p_v * 5 * ( 1 / ( p_fl ) );
-
-    env.gain.value = 0;
-    env.gain.linearRampToValueAtTime( maxGain,            node.atx.currentTime + node.atk );
-    env.gain.linearRampToValueAtTime( maxGain * node.sdr, node.atx.currentTime + node.atk + node.dcy );
-    env.gain.linearRampToValueAtTime( 0,                  node.atx.currentTime + node.atk + node.dcy + node.stn + node.rls );
-
-    osc.start();
-    osc.stop( node.atx.currentTime + node.note );
   }
 };
 
@@ -196,6 +206,15 @@ const calculate = function( obj, p_l ){
   }
 
   obj.am.play( p_l, obj.fa[ p_l + 2 ], t_na * 2, obj.rm.cgr / ( ( obj.rm.ldr - obj.rm.cir ) / ( obj.nl * 2 ) ) );
+
+  const sa = Math.random() * 2 * Math.PI;
+  const ea = 1 / obj.fa[ p_l + 2 ] * Math.PI;
+  const el = obj.rm.cir * Math.random() / 4;
+  const r = Math.floor( Math.random() * 255 );
+  const g = Math.floor( Math.random() * 255 );
+  const b = Math.floor( Math.random() * 255 );
+
+  obj.rm.addExtra( sa, ea, el, r, g, b );
 };
 
 const Automata = {
@@ -215,7 +234,7 @@ const Automata = {
       am:  Audio.create( 55 ),
       rd: [], // rendering data
       nd: [], // next iteration Data
-
+      dm: "minim" // draw mode
     });
 
     return automata;
@@ -244,7 +263,7 @@ const Automata = {
         rmref.mdr = Math.dist( rmref.mc, rmref.c );
 
         if( rmref.mdr < rmref.cir ){
-          rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 ) ;
+          rmref.cgr = ( rmref.cir / 2 ) / ( amref.nl * 2 - 1 );
         } else if( rmref.mdr > rmref.ldr - rmref.cir / 4 ){
           rmref.cgr = ( rmref.ldr - rmref.cir ) / ( amref.nl * 2 );
         } else {
@@ -253,10 +272,16 @@ const Automata = {
       }
     };
 
+    rmref.cnv.onmouseleave = function( event ){
+      rmref.md = false;
+    };
+
     rmref.cnv.onmouseup = function( event ){
       rmref.mc = {};
       rmref.md = false;
     };
+
+    rmref.cgr = ( Math.calculateLesserDimension( rmref.cnv.width , rmref.cnv.height ) / 2 - rmref.cir ) / ( amref.nl * 2 );
 
     for( let l = 0; l< this.nl; l++ ){
       let trs = 0;
@@ -333,6 +358,15 @@ const Automata = {
         }
       }
     }
+
+    for( let i = this.rm.ea.length - 1; i >= 0; i-- ){
+      this.rm.ea[ i ].ca -= this.rm.ea[ i ].cd / p_fr;
+      this.rm.ea[ i ].sl += ( this.rm.ea[ i ].ae / 5000 / p_fr ) * ( this.rm.cgr / ( ( this.rm.ldr - this.rm.cir ) ) * 10 );
+
+      if( this.rm.ea[ i ].ca < 0 ){
+        this.rm.ea.splice( i, 1 );
+      }
+    }
   },
 
   render(){
@@ -348,7 +382,11 @@ const Automata = {
         const t_sa = this.rd[ l ].cna[ r ].sa * Math.PI;
         const t_ea = this.rd[ l ].cna[ r ].ea * Math.PI;
 
-        this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        if( this.dm === "minim" ){
+          this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        } else if( this.dm === "allNodes" ){
+          this.rm.drawAllNodes( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        }
       }
     }
   },
@@ -418,7 +456,7 @@ const Automata = {
           }
         }
 
-        this.rm.drawNode( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
+        this.rm.drawAllNodes( this.rd[ l ].cna[ r ].ls, t_sr, t_er, t_sa, t_ea );
       }
     }
   },
@@ -479,13 +517,63 @@ const gameLoop = function(){
 
   automata.cycle( tbr );
   automata.rm.clear();
+  automata.rm.drawExtras();
+  if( automata.dm === "all" ){
+    automata.renderBridges();
+  } else {
+    automata.render();
+  }
   automata.render();
   //automata.displayFrameRate( delta );
 
   requestFrameRate( gameLoop );
 };
 
-init();
+window.onload = function(){
+  init();
+
+  let center = document.querySelector( 'section' );
+  let panel  = document.querySelector( 'div' );
+  let muteButton = document.querySelector( 'button.mute' );
+  let drawButton = document.querySelector( 'button.draw' );
+
+  let panelSwap = function(){
+    if( panel.classList.contains( 'overlay' ) ){
+      panel.classList.remove( 'overlay' );
+      center.classList.remove( 'active' );
+    } else {
+      panel.className += 'overlay';
+      center.className += 'active';
+    }
+  };
+
+  center.onclick = panelSwap;
+
+  muteButton.onclick = function(){
+    const status = automata.am.mute;
+    if( status ){
+      muteButton.innerHTML = "Mute";
+      automata.am.switchMute();
+    } else {
+      muteButton.innerHTML = "Unmute";
+      automata.am.switchMute();
+    }
+  };
+
+  drawButton.onclick = function(){
+    const status = automata.dm;
+    if( status === "minim" ){
+      drawButton.innerHTML = "allNodes";
+      automata.dm = "allNodes";
+    } else if( status === "allNodes"){
+      drawButton.innerHTML = "all";
+      automata.dm = "all";
+    } else if( status === "all"){
+      drawButton.innerHTML = "minim";
+      automata.dm = "minim";
+    }
+  }
+};
 
 },{"./automata.js":2}],4:[function(require,module,exports){
 const _cnv = document.querySelector( 'canvas' );
@@ -528,12 +616,13 @@ const Render = {
              y: 0 }, // reference to center point of canvas
        mc: { x: 0,
              y: 0 }, // Mouse Coordinates
-       md: false // Mouse Down check
+       md: false, // Mouse Down check
+       ea: []
     });
 
     return render;
   },
-  
+
   refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;
@@ -576,7 +665,49 @@ const Render = {
     this.ctx.stroke();
   },
 
+
   drawNode( p_ls, p_sr, p_er, p_sa, p_ea ){
+    if( !p_ls ){
+      return;
+    }
+
+    this.ctx.lineWeight = 1;
+    this.ctx.beginPath();
+    this.ctx.moveTo(
+      this.c.x + p_sr * Math.cos( p_sa ),
+      this.c.y + p_sr * Math.sin( p_sa )
+    );
+
+    this.ctx.arc(
+      this.c.x,
+      this.c.y,
+      p_sr,
+      p_sa,
+      p_ea,
+      false
+    );
+
+    this.ctx.arc(
+      this.c.x,
+      this.c.y,
+      p_er,
+      p_ea,
+      p_sa,
+      true
+    );
+
+    this.ctx.lineTo(
+      this.c.x + p_sr * Math.cos( p_sa ),
+      this.c.y + p_sr * Math.sin( p_sa ),
+      this.c.x + p_er * Math.cos( p_sa ),
+      this.c.y + p_er * Math.sin( p_sa )
+    );
+    this.ctx.closePath();
+    this.ctx.fillStyle = 'black';
+    this.ctx.fill();
+  },
+
+  drawAllNodes( p_ls, p_sr, p_er, p_sa, p_ea ){
     this.ctx.lineWeight = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(
@@ -617,6 +748,72 @@ const Render = {
       this.ctx.stroke();
     } else {
       this.ctx.fillStyle = 'black';
+      this.ctx.fill();
+    }
+  },
+
+  addExtra( p_sa, p_ea, p_el, p_r, p_g, p_b ){
+    const ldr = this.ldr;
+    const cir = this.cir;
+
+    this.ea.push({
+      sa: p_sa, // start angle
+      ea: p_ea, // angle value
+      sl: cir, // starting length
+      el: p_el, // length
+      ae: ldr * 1.5,
+      cr: p_r, // r
+      cg: p_g, // g
+      cb: p_b, // b
+      ca: 1,   // alpha value
+      cd: 1 / 5000 // milli seconds
+    });
+  },
+
+  drawExtras(){
+    for( let i = 0; i < this.ea.length; i++ ){
+      const extra = this.ea[ i ];
+
+      this.ctx.lineWeight = 1;
+      this.ctx.strokeStyle = 'black';
+      this.ctx.beginPath();
+
+      this.ctx.moveTo(
+        this.c.x + extra.sl * Math.cos( extra.sa ),
+        this.c.y + extra.sl * Math.sin( extra.sa ) );
+
+      this.ctx.arc(
+        this.c.x,
+        this.c.y,
+        extra.sl,
+        extra.sa,
+        extra.sa + extra.ea,
+        false
+        );
+
+
+      this.ctx.arc(
+        this.c.x,
+        this.c.y,
+        extra.sl + extra.el,
+        extra.sa + extra.ea,
+        extra.sa,
+        true
+        );
+
+
+      this.ctx.lineTo(
+        this.c.x + extra.sl * Math.cos( extra.sa ),
+        this.c.y + extra.sl * Math.sin( extra.sa ),
+        this.c.x + ( extra.sl + extra.el ) * Math.cos( extra.sa ),
+        this.c.y + ( extra.sl + extra.el ) * Math.sin( extra.sa ) );
+
+      this.ctx.closePath();
+      this.ctx.fillStyle = "rgba(" +
+                           extra.cr + "," +
+                           extra.cg + "," +
+                           extra.cb + "," +
+                           extra.ca + ")";
       this.ctx.fill();
     }
   },

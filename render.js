@@ -38,12 +38,13 @@ const Render = {
              y: 0 }, // reference to center point of canvas
        mc: { x: 0,
              y: 0 }, // Mouse Coordinates
-       md: false // Mouse Down check
+       md: false, // Mouse Down check
+       ea: []
     });
 
     return render;
   },
-  
+
   refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;
@@ -86,7 +87,49 @@ const Render = {
     this.ctx.stroke();
   },
 
+
   drawNode( p_ls, p_sr, p_er, p_sa, p_ea ){
+    if( !p_ls ){
+      return;
+    }
+
+    this.ctx.lineWeight = 1;
+    this.ctx.beginPath();
+    this.ctx.moveTo(
+      this.c.x + p_sr * Math.cos( p_sa ),
+      this.c.y + p_sr * Math.sin( p_sa )
+    );
+
+    this.ctx.arc(
+      this.c.x,
+      this.c.y,
+      p_sr,
+      p_sa,
+      p_ea,
+      false
+    );
+
+    this.ctx.arc(
+      this.c.x,
+      this.c.y,
+      p_er,
+      p_ea,
+      p_sa,
+      true
+    );
+
+    this.ctx.lineTo(
+      this.c.x + p_sr * Math.cos( p_sa ),
+      this.c.y + p_sr * Math.sin( p_sa ),
+      this.c.x + p_er * Math.cos( p_sa ),
+      this.c.y + p_er * Math.sin( p_sa )
+    );
+    this.ctx.closePath();
+    this.ctx.fillStyle = 'black';
+    this.ctx.fill();
+  },
+
+  drawAllNodes( p_ls, p_sr, p_er, p_sa, p_ea ){
     this.ctx.lineWeight = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(
@@ -127,6 +170,72 @@ const Render = {
       this.ctx.stroke();
     } else {
       this.ctx.fillStyle = 'black';
+      this.ctx.fill();
+    }
+  },
+
+  addExtra( p_sa, p_ea, p_el, p_r, p_g, p_b ){
+    const ldr = this.ldr;
+    const cir = this.cir;
+
+    this.ea.push({
+      sa: p_sa, // start angle
+      ea: p_ea, // angle value
+      sl: cir, // starting length
+      el: p_el, // length
+      ae: ldr * 1.5,
+      cr: p_r, // r
+      cg: p_g, // g
+      cb: p_b, // b
+      ca: 1,   // alpha value
+      cd: 1 / 5000 // milli seconds
+    });
+  },
+
+  drawExtras(){
+    for( let i = 0; i < this.ea.length; i++ ){
+      const extra = this.ea[ i ];
+
+      this.ctx.lineWeight = 1;
+      this.ctx.strokeStyle = 'black';
+      this.ctx.beginPath();
+
+      this.ctx.moveTo(
+        this.c.x + extra.sl * Math.cos( extra.sa ),
+        this.c.y + extra.sl * Math.sin( extra.sa ) );
+
+      this.ctx.arc(
+        this.c.x,
+        this.c.y,
+        extra.sl,
+        extra.sa,
+        extra.sa + extra.ea,
+        false
+        );
+
+
+      this.ctx.arc(
+        this.c.x,
+        this.c.y,
+        extra.sl + extra.el,
+        extra.sa + extra.ea,
+        extra.sa,
+        true
+        );
+
+
+      this.ctx.lineTo(
+        this.c.x + extra.sl * Math.cos( extra.sa ),
+        this.c.y + extra.sl * Math.sin( extra.sa ),
+        this.c.x + ( extra.sl + extra.el ) * Math.cos( extra.sa ),
+        this.c.y + ( extra.sl + extra.el ) * Math.sin( extra.sa ) );
+
+      this.ctx.closePath();
+      this.ctx.fillStyle = "rgba(" +
+                           extra.cr + "," +
+                           extra.cg + "," +
+                           extra.cb + "," +
+                           extra.ca + ")";
       this.ctx.fill();
     }
   },

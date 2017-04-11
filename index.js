@@ -46,10 +46,60 @@ const gameLoop = function(){
 
   automata.cycle( tbr );
   automata.rm.clear();
+  automata.rm.drawExtras();
+  if( automata.dm === "all" ){
+    automata.renderBridges();
+  } else {
+    automata.render();
+  }
   automata.render();
   //automata.displayFrameRate( delta );
 
   requestFrameRate( gameLoop );
 };
 
-init();
+window.onload = function(){
+  init();
+
+  let center = document.querySelector( 'section' );
+  let panel  = document.querySelector( 'div' );
+  let muteButton = document.querySelector( 'button.mute' );
+  let drawButton = document.querySelector( 'button.draw' );
+
+  let panelSwap = function(){
+    if( panel.classList.contains( 'overlay' ) ){
+      panel.classList.remove( 'overlay' );
+      center.classList.remove( 'active' );
+    } else {
+      panel.className += 'overlay';
+      center.className += 'active';
+    }
+  };
+
+  center.onclick = panelSwap;
+
+  muteButton.onclick = function(){
+    const status = automata.am.mute;
+    if( status ){
+      muteButton.innerHTML = "Mute";
+      automata.am.switchMute();
+    } else {
+      muteButton.innerHTML = "Unmute";
+      automata.am.switchMute();
+    }
+  };
+
+  drawButton.onclick = function(){
+    const status = automata.dm;
+    if( status === "minim" ){
+      drawButton.innerHTML = "allNodes";
+      automata.dm = "allNodes";
+    } else if( status === "allNodes"){
+      drawButton.innerHTML = "all";
+      automata.dm = "all";
+    } else if( status === "all"){
+      drawButton.innerHTML = "minim";
+      automata.dm = "minim";
+    }
+  }
+};

@@ -30,15 +30,62 @@
     animation-direction: reverse;
   }
 
+  section.active{
+    background-color: #FFF;
+    color: #000;
+    -webkit-animation:spin 10s linear infinite;
+    -moz-animation:spin 10s linear infinite;
+    animation: spin 10s linear infinite;
+    animation-direction: normal;
+  }
+
   @-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
   @-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
   @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+
+  div{
+    display: none;
+    position: absolute;
+    text-align: center;
+    list-style: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    background-color: #000;
+    color: #FFF;
+    font-size: 1em;
+    padding: 0 2em;
+  }
+
+  div.overlay{
+    display: block;
+  }
 
 </style>
 </head>
 <body>
   <canvas></canvas>
   <section>?</section>
+  <div>
+    <h1>Circular Life</h1>
+    <p>This is a mutant example of <a href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life">Conway's Game of Life</a>,
+      except in a circular fashion instead of a grid.
+      As the radial layers gets larger, so does the amount of nodes.
+      Therefore the grid could be envisioned as a toroidal cone instead.
+      The rules being used are simpler than the original game.<p>
+    <ul>
+      <li>Exactly two living neighbors will cause this node to live to the next cycle.</li>
+      <li>Three or more living neighbors will cause this node to die upon the next cycle.</li>
+    </ul>
+    Finally, this rendition of the Game of Life will cycle in different intervals,
+    depending on the angle of each node in the layer.
+    The larger the layer, the faster the life scanning cycle will occur.</p>
+    <button class="mute">Unmute</button><button class="draw">allNodes</button>
+    <p>This project comes with audio - whenever each layer is scanned, a frequency is played using an oscilator.
+      The frequency depends on the number of living cells at that certain calculation.
+      You can drag the screen with mouse clicks to make the radius smaller or larger,
+      which effects the volume of the audio as well.<p>
+  </div>
 </body>
 <script src="./bundle.js"></script>
 </html>

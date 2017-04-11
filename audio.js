@@ -15,6 +15,7 @@ const Audio = {
     Object.assign( audio, {
       base: p_base,  // int in hertz
       step: Math.pow( 2, ( 1 / 12 ) ), // To depict the twelve steps of pitch between each octave
+      mute: true,
       data: []
     });
 
@@ -49,42 +50,51 @@ const Audio = {
     return node;
   },
 
+  switchMute(){
+    if( this.mute ){
+      this.mute = false;
+    } else {
+      this.mute = true;
+    }
+  },
+
   // p_nl: index of node layer
   // p_fl: fibb array length
   // p_ns: pitch steps from base pitch
   play( p_nl, p_fl, p_ns, p_v ){
-    const node = this.data[ p_nl ];
-    const osc = node.atx.createOscillator();
-    const ftr = node.atx.createBiquadFilter();
-    const env = node.atx.createGain();
+    if( !this.mute ){
+      const node = this.data[ p_nl ];
+      const osc = node.atx.createOscillator();
+      const ftr = node.atx.createBiquadFilter();
+      const env = node.atx.createGain();
 
-    osc.connect( ftr );
-    ftr.connect( env );
-    env.connect( node.atx.destination );
+      osc.connect( ftr );
+      ftr.connect( env );
+      env.connect( node.atx.destination );
 
-    // Formula from http://www.phy.mtu.edu/~suits/NoteFreqCalcs.html
-    osc.frequency.value = node.base * Math.pow( this.step, p_ns );
+      // Formula from http://www.phy.mtu.edu/~suits/NoteFreqCalcs.html
+      osc.frequency.value = node.base * Math.pow( this.step, p_ns );
 
-    //osc.frequency.value = node.base;
-    //osc.detune.value = p_ns * 12.5;
+      //osc.frequency.value = node.base;
+      //osc.detune.value = p_ns * 12.5;
 
-    ftr.type = "lowpass";
-    ftr.frequency.value = node.base; // To this value's next octave
+      ftr.type = "lowpass";
+      ftr.frequency.value = node.base; // To this value's next octave
 
-    if( p_v < 0 ){
-      p_v = 1;
+      if( p_v < 0 ){
+        p_v = 1;
+      }
+
+      let maxGain = p_v * 5 * ( 1 / ( p_fl ) );
+
+      env.gain.value = 0;
+      env.gain.linearRampToValueAtTime( maxGain,            node.atx.currentTime + node.atk );
+      env.gain.linearRampToValueAtTime( maxGain * node.sdr, node.atx.currentTime + node.atk + node.dcy );
+      env.gain.linearRampToValueAtTime( 0,                  node.atx.currentTime + node.atk + node.dcy + node.stn + node.rls );
+
+      osc.start();
+      osc.stop( node.atx.currentTime + node.note );
     }
-
-    console.log( p_v  * 5 );
-    let maxGain = p_v * 5 * ( 1 / ( p_fl ) );
-
-    env.gain.value = 0;
-    env.gain.linearRampToValueAtTime( maxGain,            node.atx.currentTime + node.atk );
-    env.gain.linearRampToValueAtTime( maxGain * node.sdr, node.atx.currentTime + node.atk + node.dcy );
-    env.gain.linearRampToValueAtTime( 0,                  node.atx.currentTime + node.atk + node.dcy + node.stn + node.rls );
-
-    osc.start();
-    osc.stop( node.atx.currentTime + node.note );
   }
 };
 
