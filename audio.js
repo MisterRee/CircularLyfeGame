@@ -1,13 +1,13 @@
-
 const repipe = function( obj ){
     // Setting pipe, filter signal first, then change its ADSR
     obj.carrier.connect( obj.filter );
     obj.filter.connect( obj.envelope );
     obj.envelope.connect( obj.atx.destination );
-
     obj.carrier.start();
 }
 
+// Be aware that this module contains the tools to play one oscillator
+// Multiple Audio modules are used to play multiple oscillator at once.
 const Audio = {
   create( p_base ){
     let audio = Object.create( this );

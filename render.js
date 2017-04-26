@@ -1,3 +1,6 @@
+// Configurable variables
+const floaterLifetime = 1 / 5000;
+
 const _cnv = document.querySelector( 'canvas' );
 const _ctx = _cnv.getContext( '2d' );
 const _ms = document.querySelector( 'section' );
@@ -45,6 +48,7 @@ const Render = {
     return render;
   },
 
+  // function to resize everything according to the window screen
   refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;
@@ -174,7 +178,7 @@ const Render = {
     }
   },
 
-  addExtra( p_sa, p_ea, p_el, p_r, p_g, p_b ){
+  addFloater( p_sa, p_ea, p_el, p_r, p_g, p_b ){
     const ldr = this.ldr;
     const cir = this.cir;
 
@@ -188,11 +192,11 @@ const Render = {
       cg: p_g, // g
       cb: p_b, // b
       ca: 1,   // alpha value
-      cd: 1 / 5000 // milli seconds
+      cd: floaterLifetime // milli seconds
     });
   },
 
-  drawExtras(){
+  drawFloaters(){
     for( let i = 0; i < this.ea.length; i++ ){
       const extra = this.ea[ i ];
 

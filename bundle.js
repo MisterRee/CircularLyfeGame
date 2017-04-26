@@ -1,14 +1,14 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-
 const repipe = function( obj ){
     // Setting pipe, filter signal first, then change its ADSR
     obj.carrier.connect( obj.filter );
     obj.filter.connect( obj.envelope );
     obj.envelope.connect( obj.atx.destination );
-
     obj.carrier.start();
 }
 
+// Be aware that this module contains the tools to play one oscillator
+// Multiple Audio modules are used to play multiple oscillator at once.
 const Audio = {
   create( p_base ){
     let audio = Object.create( this );
@@ -102,11 +102,21 @@ const Audio = {
 module.exports = Audio;
 
 },{}],2:[function(require,module,exports){
+// Configurable variables
+const audioAttack        = 0.25;
+const audioDecay         = 0.25;
+const audioSustain       = 0.25;
+const audioRelease       = 0.25;
+const audioSustainVolume = 0.5;
+
 const Render = require( './render.js' );
 const Audio = require( './audio.js' );
 
-// Closure 'private' function
+// Closure function which holds the rules for the automata to cycle through
 const applyRules = function( obj, p_cnc, p_l, p_r ){
+  // p_cnc is the count of neighbors that are alive
+  // p_l is the node layer in question
+  // p_r is a reference to a specific node in a layer
   if( p_cnc == 2 ){
     obj.nd[ p_l ][ p_r ].ls = true;
   }
@@ -116,6 +126,32 @@ const applyRules = function( obj, p_cnc, p_l, p_r ){
   }
 };
 
+// Closure function which calculates the number of living nodes in the layer
+// Creates a new floater based on results of tally
+const generateFloater = function( obj, p_l, p_na ){
+  if( p_na > 16 ){
+    p_na = Math.round( p_na / 4 );
+  } else if( p_na > 12 ){
+    p_na = Math.round( p_na / 3 );
+  } else if( p_na > 8 ){
+    p_na = Math.floor( p_na / 2 );
+  }
+
+  obj.am.play( p_l, obj.fa[ p_l + 2 ], p_na * 2, obj.rm.cgr / ( ( obj.rm.ldr - obj.rm.cir ) / ( obj.nl * 2 ) ) );
+
+  const sa = Math.random() * 2 * Math.PI;
+  const ea = 1 / obj.fa[ p_l + 2 ] * Math.PI;
+  const el = obj.rm.cir * Math.random() / 4;
+  const r = Math.floor( Math.random() * 255 );
+  const g = Math.floor( Math.random() * 255 );
+  const b = Math.floor( Math.random() * 255 );
+
+  obj.rm.addFloater( sa, ea, el, r, g, b );
+};
+
+// Closure function which scans through a specific node layer.
+// Calculates the amount of living neighbors for every node,
+// Calls the rule application  and floater geneeration functions
 const calculate = function( obj, p_l ){
   let t_na = 0;
 
@@ -196,25 +232,7 @@ const calculate = function( obj, p_l ){
       t_na++;
     }
   }
-
-  if( t_na > 16 ){
-    t_na = Math.round( t_na / 4 );
-  } else if( t_na > 12 ){
-    t_na = Math.round( t_na / 3 );
-  } else if( t_na > 8 ){
-    t_na = Math.floor( t_na / 2 );
-  }
-
-  obj.am.play( p_l, obj.fa[ p_l + 2 ], t_na * 2, obj.rm.cgr / ( ( obj.rm.ldr - obj.rm.cir ) / ( obj.nl * 2 ) ) );
-
-  const sa = Math.random() * 2 * Math.PI;
-  const ea = 1 / obj.fa[ p_l + 2 ] * Math.PI;
-  const el = obj.rm.cir * Math.random() / 4;
-  const r = Math.floor( Math.random() * 255 );
-  const g = Math.floor( Math.random() * 255 );
-  const b = Math.floor( Math.random() * 255 );
-
-  obj.rm.addExtra( sa, ea, el, r, g, b );
+  generateFloater( obj, p_l, t_na );
 };
 
 const Automata = {
@@ -240,6 +258,7 @@ const Automata = {
     return automata;
   },
 
+  // Adds onmousedown, onmousemove, and onmouseleave functions to the Canvas
   initialize(){
     this.rm.refit( this.nl );
 
@@ -324,6 +343,8 @@ const Automata = {
       }
 
       const t_time = 2 / this.fa[ l + 2 ] / this.rs;
+
+      // creating audio module, refer to audio.js for parameter definitions
       this.am.data[ l ] = this.am.setup( l ,t_time / 1000, 0.25, 0.25, 0.25, 0.25, 0.5 );
       let obj = this;
 
@@ -334,6 +355,8 @@ const Automata = {
     }
   },
 
+  // function which cycles every node and floater each frame in respect to their rotation speeds
+  // p_fr refers to time in milliseconds passed since last frame call
   cycle( p_fr ){
     for( let l = 0; l < this.nl; l++ ){
       for( let r = 0; r < this.fa[ l + 2 ]; r++ ){
@@ -369,7 +392,7 @@ const Automata = {
     }
   },
 
-  render(){
+  renderNodes(){
     for( let l = 0; l < this.nl; l++ ){
       const t_ga = 1 / this.fa[ l + 2 ];
       const t_sr = this.rm.cir + l * this.rm.cgr * 2;
@@ -474,9 +497,8 @@ module.exports = Automata;
 // Configure variables
 const c_nnl = 5; // Number of node layers
 const c_ifa = [ 2, 3 ]; // Initial Fibbonachi Array
-const c_lrs = 2 / 20000; // Layer Rotation Scale, divsor is time required for one full rotation
-
-let crd = 10; // Canvas-sacled Radius Divisor
+const c_lrs = 1 / 10000; // Layer Rotation Scale, divsor is time in milliseconds required for one full rotation
+let crd = 10; // Canvas-scaled Radius Divisor;
 let crg = 10; // Canvas-scaled Radius Growth
 
 const Automata = require( './automata.js' );
@@ -517,14 +539,13 @@ const gameLoop = function(){
 
   automata.cycle( tbr );
   automata.rm.clear();
-  automata.rm.drawExtras();
+  automata.rm.drawFloaters();
   if( automata.dm === "all" ){
     automata.renderBridges();
+    automata.renderNodes();
   } else {
-    automata.render();
+    automata.renderNodes();
   }
-  automata.render();
-  //automata.displayFrameRate( delta );
 
   requestFrameRate( gameLoop );
 };
@@ -576,6 +597,9 @@ window.onload = function(){
 };
 
 },{"./automata.js":2}],4:[function(require,module,exports){
+// Configurable variables
+const floaterLifetime = 1 / 5000;
+
 const _cnv = document.querySelector( 'canvas' );
 const _ctx = _cnv.getContext( '2d' );
 const _ms = document.querySelector( 'section' );
@@ -623,6 +647,7 @@ const Render = {
     return render;
   },
 
+  // function to resize everything according to the window screen
   refit( p_nl ){
     this.cnv.width  = this.cnv.clientWidth;
     this.cnv.height = this.cnv.clientHeight;
@@ -752,7 +777,7 @@ const Render = {
     }
   },
 
-  addExtra( p_sa, p_ea, p_el, p_r, p_g, p_b ){
+  addFloater( p_sa, p_ea, p_el, p_r, p_g, p_b ){
     const ldr = this.ldr;
     const cir = this.cir;
 
@@ -766,11 +791,11 @@ const Render = {
       cg: p_g, // g
       cb: p_b, // b
       ca: 1,   // alpha value
-      cd: 1 / 5000 // milli seconds
+      cd: floaterLifetime // milli seconds
     });
   },
 
-  drawExtras(){
+  drawFloaters(){
     for( let i = 0; i < this.ea.length; i++ ){
       const extra = this.ea[ i ];
 
