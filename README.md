@@ -2,7 +2,7 @@
 Developed off of the lessons learned from [CellularAutomata](https://github.com/MisterRee/CellularAutomata)
 A javascript browser based example of cellular automata, remixed with a new circular flavor and rules. Light audio and interactivity added in.
 
-[Client-Only Demo](https://people.rit.edu/dxl1720/ComputationalAesthetics/CircularLyfe/)
+[Github Pages Demo](https://misterree.github.io/CircularLyfeGame/)
 
 To stay faithful to the philosophy of the [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), the processes used are complicated to comprehend but are simple in design. Each layer of nodes has different spin rates and frequencies of lifecycle calculation. The ratio depends on how many nodes are within a layer; the more nodes, the faster the spin and calculation rates. The number of nodes increases with the [Fibbonachi Sequence](https://en.wikipedia.org/wiki/Fibonacci_number).
 
