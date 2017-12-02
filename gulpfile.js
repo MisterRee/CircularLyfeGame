@@ -26,7 +26,7 @@ gulp.task( 'build', function(){
     .pipe( buffer() )
     .pipe( uglify() )
     .pipe( rename( 'bundle.min.js' ) )
-    .pipe( gulp.dest( '/' ) )
+    .pipe( gulp.dest( './' ) )
 });
 
 // Sequencially runs gulp tasks
